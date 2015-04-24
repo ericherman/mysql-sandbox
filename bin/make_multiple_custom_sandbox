@@ -1,6 +1,7 @@
 #!/usr/bin/perl 
+# make_multiple_custom_sandbox
 #    The MySQL Sandbox
-#    Copyright (C) 2006,2007,2008,2009 Giuseppe Maxia
+#    Copyright (C) 2006-2010 Giuseppe Maxia
 #    Contacts: http://datacharmer.org
 #
 #    This program is free software; you can redistribute it and/or modify
@@ -21,15 +22,22 @@ use warnings;
 use English qw( -no_match_vars ); 
 use Data::Dumper;
 use Getopt::Long qw(:config no_ignore_case );
-use MySQL::Sandbox;
+use MySQL::Sandbox qw(get_ranges runs_as_root use_env sbinstr);
 use MySQL::Sandbox::Scripts;
 
 my $DEBUG = $MySQL::Sandbox::DEBUG;
+
+runs_as_root();
 
 my %defaults = (
     custom_base_port => $MySQL::Sandbox::default_base_port{custom},
     group_directory => 'multi_cmsb',
 );
+
+unless ( -d $ENV{'SANDBOX_HOME'} ) {
+    mkdir $ENV{'SANDBOX_HOME'} 
+        or die "can't create $ENV{'SANDBOX_HOME'} ($CHILD_ERROR) \n";
+}
 
 #my $install_dir;
 #$install_dir = $PROGRAM_NAME;
@@ -55,6 +63,27 @@ unless ($msb->{options}{server_version}) {
     @ARGV > 0 or $msb->get_help('server version required');
 }
 
+if ($msb->{options}{node_options})
+{
+    $ENV{NODE_OPTIONS} = $msb->{options}{node_options};
+}
+
+if ($msb->{options}{one_node_options})
+{
+    for my $node_opt (@{ $msb->{options}{one_node_options}} )
+    {
+        if ($node_opt =~ /^(\d+):\s*(\S.+)/)
+        {
+            $ENV{"NODE${1}_OPTIONS"} = $2;
+        }
+        else
+        {
+            get_help("invalid format for --one_node_option ($node_opt)");    
+        }
+    }
+}
+
+
 my $replication_port = 0;
 my @base_version ;
 my @dashed_version ;
@@ -63,9 +92,13 @@ my $counter =0;
 for my $ver (@versions) {
     my $temp_path = $ver;
     $temp_path =~ s{.*/}{};
+    my $prefix ='';
+    if ( $temp_path =~ /^(\D+)\d+/ ) {
+        $prefix = $1;    
+    }
     if ( $temp_path =~ /(\d+)\.(\d+)\.(\d+)/ ) {
         $base_version[$counter] = "$1$2$3";
-        $dashed_version[$counter] = "$1_$2_$3";
+        $dashed_version[$counter] = "${prefix}$1_$2_$3";
         $base_version[$counter] =~ s/^0+//;
         $counter++;
     }
@@ -90,6 +123,7 @@ if ( -d $group_directory ) {
 else {
     print "creating replication directory $group_directory\n" if $msb->{options}{verbose};
     mkdir $group_directory
+        or die "can't create $group_directory \n";
 }
 
 for my $dir ( 1 .. @versions ) {
@@ -99,13 +133,31 @@ for my $dir ( 1 .. @versions ) {
     }
 }
 
+my $custom_base_port = 0;
+if ( $msb->{options}{sandbox_base_port}) {
+    $custom_base_port = $msb->{options}{sandbox_base_port};
+}
+else {
+    $custom_base_port = $defaults{custom_base_port};
+}
+
+if ( $msb->{options}{check_base_port}) {
+    $custom_base_port = get_ranges({
+            min_range   => $custom_base_port,
+            range_size  => $#versions,
+            max_range   => 64000,
+            search_path => $ENV{SANDBOX_HOME},
+        }, 1);
+}
+
+
 for my $ver_counter (0 .. $#versions) {
 
     if ( $msb->{options}{sandbox_base_port}) {
-        $replication_port = $msb->{options}{sandbox_base_port};
+        $replication_port = $custom_base_port;
     }
     else {
-        $replication_port = $defaults{custom_base_port} + $base_version[$ver_counter];
+        $replication_port = $custom_base_port + $base_version[$ver_counter];
     }
 
     my $additional_node_options = $ENV{NODE_OPTIONS} || '';
@@ -113,21 +165,31 @@ for my $ver_counter (0 .. $#versions) {
     my $node = $ver_counter + 1;
     my $node_port = $replication_port+ $node;
     print "installing node $node\n";
-    my $install_node = qx(
-     make_sandbox $versions[$ver_counter] \\
+    my $this_node_options = $ENV{"NODE${node}_OPTIONS"} || '';
+    my $install_node = '';
+    my $install_node_command = qq(
+     make_sandbox $versions[$ver_counter] -- \\
      --datadir_from=script \\
      --upper_directory=$group_directory \\
      --sandbox_directory=node$node \\
      --no_confirm \\
+     --no_check_port \\
      --prompt_prefix=node$node \\
      --sandbox_port=$node_port \\
      -c server-id=10$node \\
      -c log-bin=mysql-bin $additional_node_options
      );
-     print $install_node if $msb->{options}{verbose};
-     if ($CHILD_ERROR) {
+    if ($msb->{options}{interactive} 
+        or ($additional_node_options =~ /\binteractive\b/)) {
+        system($install_node_command);
+    }
+    else {
+        $install_node = qx($install_node_command);
+    }
+    print $install_node if $msb->{options}{verbose};
+    if ($CHILD_ERROR) {
          print "error installing node $node\n";
-         print "$install_node\n";
+         print "$install_node\n($CHILD_ERROR $OS_ERROR)\n";
          exit(1)
      }
      # sleep 1;
@@ -137,20 +199,26 @@ my $current_dir = $ENV{PWD};
 
 chdir $group_directory;
 
-for my $cmd ( qw(start stop clear send_kill) ) {
+for my $cmd ( qw(start stop clear send_kill ) ) {
     my $cmd_fname = $cmd . '_all';
     $msb->write_to($cmd_fname, '>', '#!/bin/sh');
+    $msb->write_to($cmd_fname, '>>', qq(echo '# executing "$cmd"' on $group_directory));
     for my $node (1 .. @versions ) {
         $msb->write_to ($cmd_fname, '>>', qq(echo 'executing "$cmd" on node $node'));
-        $msb->write_to ($cmd_fname, '>>', "$group_directory/node$node/$cmd");
+        $msb->write_to ($cmd_fname, '>>', qq($group_directory/node$node/$cmd "\$@"));
     }
     chmod 0755, $cmd_fname;
 }
 
+$msb->write_to('restart_all', '>',  '#!/bin/sh');
+$msb->write_to('restart_all', '>>', qq($group_directory/stop_all));
+$msb->write_to('restart_all', '>>', qq($group_directory/start_all "\$@"));
+chmod 0755, 'restart_all';
+
 $msb->write_to('use_all', '>', '#!/bin/sh');
 my $node_list = join(' ', (1 .. @versions ) );
 
-$msb->write_to('use_all', '>>', 'if [ "$1" == "" ]');
+$msb->write_to('use_all', '>>', 'if [ "$1" = "" ]');
 $msb->write_to('use_all', '>>', 'then');
 $msb->write_to('use_all', '>>', '  echo "syntax: $0 command"');
 $msb->write_to('use_all', '>>', '  exit 1');
@@ -163,14 +231,42 @@ $msb->write_to('use_all', '>>', '  echo "$@" | ' . $group_directory . '/node$SNU
 $msb->write_to('use_all', '>>', 'done ' );
 chmod 0755, 'use_all';
 
+$msb->write_to('status_all', '>', '#!/bin/sh');
+my $gdir = $group_directory;
+$gdir =~ s{.*/}{};
+$msb->write_to('status_all', '>>', "echo CUSTOM $gdir" );
+$msb->write_to('status_all', '>>', 'for SNUM in ' . $node_list);
+$msb->write_to('status_all', '>>', 'do ' );
+$msb->write_to('status_all', '>>', $group_directory . '/node$SNUM/status');
+$msb->write_to('status_all', '>>', 'done ' );
+chmod 0755, 'status_all';
+
 for my $node (1 .. @versions ) {
     $msb->write_to("n$node", '>', "#!/bin/sh");
     $msb->write_to("n$node", '>', qq($group_directory/node$node/use "\$@"));
     chmod 0755, "n$node";
 }
 
+my @nodes ;
+for my $N (1 .. $msb->{options}{how_many_nodes})
+{
+    push @nodes, "node$N";
+}
+
+for my $json (qw(connection.json default_connection.json))
+{
+    my $json_text = MySQL::Sandbox::get_json_from_dirs(\@nodes, $json);
+    $msb->write_to($json, '>', $json_text);
+}
+
+$msb->write_to('README', '>', MySQL::Sandbox::Scripts::get_readme_multiple());
+$msb->write_to('README', '>', MySQL::Sandbox::Scripts::get_readme_common());
+
 chdir $current_dir;
-print "group directory installed on $group_directory\n";
+print "group directory installed in ", use_env($group_directory),"\n";
+sbinstr( "group_directory installed in  <" .
+        use_env($group_directory) . ">");
+
 
 sub make_group_dir {
     my ($base_dir, $dashed) = @_;

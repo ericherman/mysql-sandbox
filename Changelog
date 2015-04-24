@@ -1,10 +1,364 @@
+3.0.50	11-Apr-2015
+	- Fixed issue with the 'clear' script in MySQL 5.7.7. Since a new default
+	database was added ('sys') and the clear command did not know about it, 
+	the new database was being removed.
+3.0.49	08-Apr-2015
+	- Fixed version detection to support also MySLQL 5.7.7 and MySQL 5.7.8.
+	  A more resilient patch will follow.
+	  Notice that, due to a change (possibly a bug) in MySQL 5.7.7, circular
+	  replication and in general any topology containing a relay slave may fail.
+3.0.48	09-Mar-2015
+	- Added provisional support for MySQL 5.7.6 (changed syntax for SET
+	PASSWORD but keep using deprecated mysql_install_db)
+3.0.47	19-Oct-2014
+	- Added support for MySQL with data dictionary (5.7.5 labs edition)
+3.0.46	25-Sep-2014
+	- Modified smoke test in test_sandbox to check correctly older and newer versions
+	- Changes to allow installation of MySQL 5.7.5:
+		- added creation of 'test' database
+		- moved lower_case_table_names to the my.sandbox.cnf file (mysql_install_db does not support this option)
+		- allow for changed syntax --insecure instead of --skip-random-password
+		- removed tmpdir from options to mysql_install_db
+	- Updated test_sandbox to avoid a 'skip-innodb' test with MariaDB 10.x
+	- Updated test_sandbox to detect correctly MariaDB versions
+3.0.45	30-Aug-2014
+	- Fixing bug#1361851 "start/stop/status scripts don't actually check if
+	  running"
+	- Fixing freshly submitted but long overdue Bug#1362014 
+	  "Sandbox scripts can't deal with stale PID files"
+3.0.44	29-Apr-2014
+    - Fixing bug#1313672 : MySQL Sandbox can't install with MySQL 5.7.4
+    - Removed some deprecated options that were removed in latest version of
+	MySQL
+3.0.43	24-Oct-2013
+	- Fixed bug#1155517 The "my" scripts excludes mysql_upgrade from
+	--default-options incorrectly 
+	- Also added mysql_config_editor to the scripts that should not get
+	defaults-options
+3.0.42	30-Sep-2013
+	- Fixed bug in sb renaming. The new name was not updated in the MANIFEST
+3.0.41	30-Sep-2013
+	- INCOMPATIBLE CHANGE: Renamed 'sb' to 'msb' to avoid name clashes in
+	- INCOMPATIBLE CHANGE: Renamed 'sb' to 'msb' to avoid name clashes in
+	Linux distributions
+3.0.40	12-Jul-2013
+	- enhanced deploy_to_remote_sandboxes.sh with the ability of using a
+	template my.cnf for remote deployment (-y file-name)
+3.0.39	29-May-2013
+	- added server_id option to deploy_to_remote_sandboxes
+	- added info about group directory to multiple sandbox 'start/stop/clear'
+	scripts
+	- added ruby connection info to connection.json
+	- Fixed display bug in credits (were reported twice in replication README)
+3.0.38	05-May-2013
+	- Fixed typos and formatting in embedded docs.
+3.0.37	05-May-2013
+	- Added connection samples (for PHP, Perl, Python, Java, shell) to 'connection.json'
+	- Added validation tests for JSON contents
+3.0.36	04-May-2013
+	- IMPORTANT CHANGES:
+	  - Added connection.json to each sandbox (simple or multiple) The file
+	  contains information to use the sandbox with third party applications.
+	  - Added default_connection.json to each sandbox (it has only the default
+	  items from connection.json)
+	  - Added README file to each sandbox (simple or multiple)
+	- enhanced check_slaves. It now includes "show master status";
+	- Fixed bug in circular replication: enable_gtid was not created;
+	- Added 25 more integrity tests;
+	- Changed default version for testing. It now looks for MySQL 5.5.31
+3.0.35	03-May-2013
+	- Fixed bug in the 'check_slaves' script created with circular replication
+	- Fixed bug in 'clear_all' script created in circular replication
+	- added 50 new integrity tests to test_sandbox
+3.0.34	29-Apr-2013
+	- Added option --bind_address, to define how MySQL::Sandbox servers
+	connect to TCP/IP
+	- Fixed bug with handling 5.7 builds. Replicated systems did not create
+	the script enable_gtid 	(BUG#1171977)
+	- The changes made by enable_gtid are now durable (Bug#1171986)
+	- Fixed various patterns that prevented MariaDB 10.0 builds from being
+	recognized.
+	- Fixed bug in test_sandbox, where warning messages were mixed with the
+	test output in MYSQL 5.5.30+
+	- Fixed bug in test_sandbox, where a test that skips innodb was being
+	wrongly applied to MySQL 5.7
+	- Added 10.0 among supported versions
+	- Added documentation about remote sandboxes (in MySQL::Sandbox::Recipes)
+	- Added a test that checks if enable_gtid is created when needed.
+3.0.33	11-Apr-2013
+	- Fixed Bug #1167794 '--log option deprecated'
+	- fixed minot working issue in deploy_to_remote_sandboxes.sh
+3.0.32	12-Mar-2013
+	- Fixed minor bug in deploy_to_remote_sandboxes.sh
+	- Added deploy_to_remote_sandboxes.sh to the list of scripts to install
+3.0.31	08-Mar-2013
+	- Fixed Bug#1133186 make_sandbox_from_source does not recognize version
+	- removed diagnostic lines that printed MySQL version and temporary
+	directory
+	- removed diagnostic lines that printed ports and directories being
+	searched when the option --check_port was used
+	- added bin/deploy_to_remote_sandboxes.sh, which installs sandboxes to
+	remote hosts
+3.0.30	06-Feb-2013
+	- Fixed Bug#1116760 Uninitalized $ENV{"SANDBOX_BINARY"} 
+	- Removed obnoxious warning introduced in MySQL 5.5.30 when using
+	mysqldump
+3.0.29	24-Jan-2013
+	- fixed bug#1103918 (affects sandboxes using MySQL 4.1)
+3.0.28	06-Jan-2013
+	- changed initialization scripts to avoid most of the annoying messages
+	that MySQL 5.6 creates during tests 
+	- Added script to enable GTID in MySQL 5.6
+3.0.27	05-Jan-2013
+	- added compatibility features to use MySQL 5.6
+	  # improved 'clear' and 'start' scripts to handle innodb tables in the
+	  'mysql' database
+	  # fixed usage of deprecated features in tests 
+	  # removed obnoxious listing when data directory is created
+3.0.26	30-Sep-2012
+	- Removed dependency on table mysql.host, which can't be found anymore in
+		MySQL 5.6.7
+3.0.25	01-Feb-2012
+	- fixed typos and credits. (Thanks to Mateusz Kijowski for noticing)
+3.0.24	17-Dec-2011
+	- added --master option to low_level_make_sandbox (enables binlogs and
+	server-ID)
+	- added --slaveof option to low_level_make_sandbox (creates a slave of
+	another sandbox or regular server)
+	- added tests for the above ones
+3.0.23	13-Dec-2011
+    - fixed bug in prefixed version names (e.g.: now you can use make_sandbox
+	ps5.1.57 or mp5.2.10)
+	- Added arguments to deal with node options in replication and multiple
+	sandbox. --node_options, --slave_options, --master_options,
+	--one_slave_options, --one_node_options
+	- added --high_performance option to low_level_make_sandbox: adds the following features to the
+	configuration file:
+        innodb-thread-concurrency=0
+        sync_binlog=0
+        innodb-log-buffer-size=50M
+        innodb-additional-mem-pool-size=100M
+        max-connections=350
+        max_allowed_packet=48M
+        innodb_buffer_pool_size=512M
+        innodb-log-file-size=50M
+        innodb-flush-method=O_DIRECT
+ 
+3.0.22	26-Oct-2011
+	- Add support for directories named after a prefixed version (my5.1.56,
+	ps5.1.56, giuseppe_5.1.56, etc)
+3.0.21	10-Oct-2011
+	- Added test to MANIFEST (and to tarball). Forgotten in previous version
+3.0.20	10-Oct-2011
+	- Fixed bug in make_sandbox. "--add_prefix" did not work in combination
+	with "--export_binaries"
+	- changed port checking tests to not depend on a specific MySQL version
+3.0.19	09-Oct-2011
+	- INCOMPATIBLE CHANGE: make_sandbox now requires '--' before adding
+	options supported by low_level_make_sandbox
+	- INCOMPATIBLE CHANGE: the option --export_binaries for make_sandbox must
+	be inserted BEFORE the tarball name
+	- make_sandbox now recognizes Percona and MariaDB binaries 
+	- make_sandbox accepts the option --add_prefix=NAME, which will be added
+	to the version number of the rename expanded tarball. (e.g.
+	--add_prefix=yell mysql-5.1.8-linux.tar.gz will create yell5.1.58)
+3.0.18	08-Oct-2011
+	- fixed CPAN Ticket 70470 MySQL::Sandbox - make_sandbox warns with Perl 5.14 and 5.14.1
+	- Fixed report-port in replication. The port used was the master's, but it
+	should be the slave's
+3.0.17	07-Jan-2011
+	- incompatible change: default mask for msandbox user is now '127.%'
+	instead of '%'. You can resume the old mask with --remote_access='%'
+	- added low privilege users msandbox_ro (SELECT EXECUTE), msandbox_rw (SELECT INSERT
+	UPDATE CREATE DROP LOCK EXECUTE), and rsandbox (REPLICATION SLAVE)
+	- fixed bug in test_smoke (assumed 2 directories after cleaning, but 5.5
+	has also performance_schema)
+3.0.16	30-Dec-2010
+	- fixed bug in TestHelper (wrong assumption on all directories in
+	$SANDBOX_BINARIES containing MySQL files)
+	- added information to check_slaves to report master logfile and position
+3.0.15	23-Dec-2010
+	- added a 'msb' script to each sandbox, to mimick the mysql.server script
+	- fixed test visualization bug for Mac OSX with case insensitive storage
+	- fixed algorithm to convert version number to ports
+	- fixed test suite for MySQL 5.5 (can't disable innodb for testing)
+3.0.14	31-Aug-2010 (not released)
+	- Added a 'rsandbox' user with REPLICATION SLAVE grants for replication
+	  systems
+3.0.13	28-Jun-2010 (not released)
+	- fixed minor problems in the test suite about testing on Windows
+	- added a prototype for MySQL Cluster integration
+3.0.12	29-May-2010
+	- Fixed bug in test_sandbox. When a test evaluates only the result code
+	  and there is no output from a failing command, test_result was not able
+	  to detect the failure.
+	- fixed bug in test_sandbox. Due to a change in behavior in the mysql
+	  client, where './use -B -N' with a \G terminated query  does not
+	  show the headers since 5.1.43, We need to take into account the pre 
+	  and post fix behaviors in the test.
+	- Integrated set_plugins into sbtool
+	- Updated documentation
+	- added tests for innodb plugin installation
+	- added tests for semi-synch plugin installation
+	- Fixed bug in 'stop' script. It did not accept $MYCLIENT_OPTION
+	- Fixed bug#487864 - tar was using '--help' instead of '--version' to
+	  detect the supported version.
+	- Fixed bug in sbtool. It did not display credits in the help.
+	- Added test to skip testing on Windows.
+	- added instrumentation to all MySQL Sandbox scripts. If you set the
+	  $SBINSTR environment variable with the name of a file, all sandbox
+	  scripts will write an entry to that file with their run time params.
+3.0.11	24-May-2010
+	- Fixed bug in ./clear script. In version 5.5 and bigger, it erased
+	  the performance_schema database, which should not be removed. If it
+	  exists, its tables are now truncated.
+	- Fixed bug in ./clear script. The removal of databases was not
+	  executed in a clean mode.
+	- Added a script to install plugins in ./drafts 
+3.0.10	04-May-2010
+	- Fixed the help() function. It displayed an example that was only
+	appropriate for a single sandbox, but not for group ones.
+3.0.09	25-Mar-2010
+	- added a check in the 'start' script to verify that mysqld_safe exists
+	  and can run properly.
+	- Added an exit code to the 'start' script to alert when the server does
+	  not start
+	- added help to make_sandbox_from_installed. Added /usr/sbin as source
+	directory
+	- added instructions to the 'clear' script to remove functions and plugins 
+3.0.08	17-Feb-2010
+	- Fixed make_sandbox_from_source failure due to changes in modified 
+	  configure.in (Thanks to Padraig O'Sullivan for noticing)
+	- modified the "USING" file, which now includes the Sandbox version
+	- Changed default test version from 5.0.77 to 5.0.86
+3.0.07	08-Jan-2010
+	- Fixed bud in make_multiple_custom_sandbox. With some versions of bash,
+	  it broke on tests with "use_all"
+	- fixed bug on symlink access on some platforms.
+	- Fixed Bug#504789 export_binaries fails on some OS when crossing file systems
+3.0.06	03-Jan-2010
+	- Fixed bug in prompt definition. A stray quote was added at the start of
+	each user-defined prompt.
+	- Fixed Bug#456949 "each sandbox should have a dedicated temporary
+	directory".
+	- Fixed Bug#439226 "sandbox_action script uses wrong version of Perl"
+	- Improved documentation to resolve Bug#392996 "make install Sandbox.pm path
+	issues".
+	- added 'status' script to sandboxes
+	- fixed db_user definition, which could write trail character to the
+	option file.
+3.0.05   12-Sep-2009
+	- Fixed Bug#428274 make_sandbox fails on Mac OSX 10.6 "snow Leopard"
+    - Increased starting timeout from 20 to 60, because some recent versions
+	  of MySQL are quite slower to start.
+	- Added a dedicated history file per each sandbox (Thanks to Gerardo Narvaja
+	  for suggesting it) 
+	- fixed bug in make_sandbox when dealing with a non-standard answer to the
+	"which" Unix utility
+	- added error checking for 'bash' to low_level_make_sandbox
+	- improved error checking for mysql_install_db script
+	- renamed 'sandbox' tool -> 'msandbox' to prevent clash
+	  with existing tool in Linux distros
+	- Added "--no_run" option to low_level_make_sandbox, to stop
+	  the server when using the "--load_grants" option. The purpose is 
+	  to end the command without leaving any running sub-process.
+3.0.04   14-Jun-2009
+	- fixed bug in test_sandbox. A "$" sign in a directory name was not
+	  escaped properly
+	- added the "--no_show" option to low_level_make_sandbox
+	- fixed a bug in the "sb" script. Calling it in "create mode" did
+	  fail if $SANDBOX_HOME does not exist yet.
+3.0.03   11-Jun-2009
+	- added the 'sb' shortcut script to create and invoke sandboxes easily.
+3.0.02   30-May-2009
+	- Added a check for all scripts, to prevent MySQL::Sandbox 
+	  from running as root without explicit awareness
+3.0.01   28-May-2009
+	- Fixed Bug#381044 "my" script fails on some executables
+	- moved function "exists_in_path" to MySQL::Sandbox module
+3.0.00   09-May-2009
+	- GA release
+	- no code modification. Same codebase as 2.0.99f
+	- completed cookbook (41 recipes in MySQL::Sandbox::Recipes)
+	- added script_templates directory (No modification in current version,
+	  just preparation for 3.1.xx)
+	- added drafts directory
+2.0.99f  03-May-2009
+	- fixed bug in make_sandbox_from_installed. Some system use /lib64 
+	  instead of /lib 
+	- added more recipes to MySQL::Sandbox::Recipes
+2.0.99e  03-May-2009
+	- added make_sandbox_from_installed to install from binaries already
+	  installed via packages such as .deb, .rpm. 
+	- added sample perl test script to MANIFEST. Missed during the previous release
+	- added MySQL::Sandbox::Recipes, a cookbook with short How-To tutorials
+	- cleaned up tests. Added 8 more test to check replication parameters
+2.0.99d  02-May-2009
+	- Added user defined test in Perl, in addition to the ones written in
+	  the test_sandbox script language
+	- Updated documentation
+2.0.99c  01-May-2009
+	- Fixed conceptual bug in "start" and "restart". Group sandboxes
+	  were not allowing it
+	- added "restart_all" in group sandboxes
+	- Added 18 new tests to check the above problem
+	- Added documentation about port checking and parameters accepted by
+	'start' and 'restart'
+2.0.99b  26-Apr-2009
+	- added group port checking to make_replication_sandbox and
+	  make_multiple_sandbox
+	- added 2 new tests to the test suite to test singkle and group
+	  port checking
+	- added documentation on port checking
+2.0.99a  12-Apr-2009
+	- fixed bug in make_replication_sandbox and make_multiple_sandbox. If a
+	group sandbox was the first to be created under $SANDBOX_HOME, it failed.
+	- added check_replication.sb as user defined sample test
+2.0.99  11-Apr-2009
+	- implemented user defined test modules
+	- fixed some documentation glitches
+	- Added documentation about user defined tests
+2.0.98i 09-Apr-2009
+	- added script make_sandbox_from_source, which will create
+	  a sandbox from a build directory
+	- Extended maximum port to 64000
+	- added MySQL versions 5.[2345] as accepted for a Sandbox
+2.0.98h 08-Apr-2009
+	- Changed test_sandbox to use IPC::Open3 instead of qx, when
+	  available. This will make the 'make test' output more readable.
+    - added Test_Helper.pm to the test suite
+2.0.98g 07-Apr-2009
+	- added --master_node option to sbtool
+	- added 'preserve' and 'unpreserve' options to sbtool
+	- made test_sandbox TAP compatible
+	- updated the test suite
+	- written the documentation on sbtool to MySQL::Sandbox POD
+2.0.98f 06-Apr-2009
+    - added 'delete' action to sbtool
+	- introduced --export_binaries to make_sandbox
+	- added 03_test_sandbox.t, which uses test_sandbox within
+	  the test suite
+	- fixed bug in sbtool. Moving sandbox failed becaus of wrong regular
+      expression
+	- added a test suite for sbtool to test_sandbox 
+	  test_sandbox --tests=sbtool
+2.0.98e 02-Apr-2009
+	- fixed error in low_level_make_sandbox --interactive. Array values
+	  were not preserved correctly wit a default
+	- implemented interactive confirmation for group sandboxes
+2.0.98d 01-Apr-2009
+	- Deprecated "query_analyzer" option :)
+	- moved the POD to MySQL::Sandbox
+	- produced mew README from the POD
+	- implemented --no_check_port (to use as a safeguard with group sandboxes)
+2.0.98c 01-Apr-2009
+	- added query_analyzer option
 2.0.98b 31-Mar-2009
 	- taken most function from sbtool to MySQL::Sandbox module
 	- implemented --check_port for single sandboxes
 	- fixed bug#352222 "report-port incorrect with --master-master"
 	- cleaned up code for parse_options in all scripts
 	- enhanced test case with some tests for the script correctness
-	- added query_analyzer option
 2.0.98 29-Mar-2009
 	- Preparation for version 3.0
 	- refactoring code to use with ExtUtilis::MakeMaker and install a proper
